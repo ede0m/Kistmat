@@ -168,7 +168,7 @@ def run_cli():
 					if cmds[2] == 'targets':
 						print_entities(workers[cmds[0]].targets)
 					else:
-						print('unknown command: \''+cmds[0]+' '+cmds[1]+' '+cmds[3]+'\'')
+						print('unknown command: \''+cmds[0]+' '+cmds[1]+' '+cmds[2]+'\'')
 				else:
 					print('unknown command: \''+cmds[1]+' '+cmds[2]+'\'')
 
@@ -212,7 +212,7 @@ def run_cli():
 					if cmds[2] == 'bots':
 						for b in schedules[cmds[0]].workers.keys(): print('\t\t\t'+b)
 					else:
-						print('unknown command: \''+cmds[0]+' '+cmds[1]+' '+cmds[3]+'\'')
+						print('unknown command: \''+cmds[0]+' '+cmds[1]+' '+cmds[2]+'\'')
 				else:
 					print('unknown command: \''+cmds[1]+' '+cmds[2]+'\'')
 
