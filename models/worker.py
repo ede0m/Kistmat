@@ -32,8 +32,8 @@ class Worker:
 			return details + '\n'
 		
 		except Exception as e:
-			print('\nsomething went wrong.\n')
-			print('\n'+e+'\n')
+			error = '\nsomething went wrong - ' + str(e) + "\n"
+			return error
 	
 	def __try_vote_post_set(self, p_set, v_direction):
 		
@@ -46,7 +46,7 @@ class Worker:
 			expired = (now-created_date) > timedelta(180)
 			if p.id not in self.interacted_with and not expired:
 				self.__vote(p, v_direction)
-				n_voted += 1
+			n_voted += 1
 
 		return n_voted
 

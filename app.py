@@ -5,8 +5,23 @@ import os
 from models.target import Target
 from models.worker import Worker
 from models.schedule import Schedule
+from requests import Session
 
 ###################################
+
+def create_reddit_worker(bot_name, proxy_url):
+	if proxy_url:
+		s = Session()
+		proxies = {
+			'http': proxy_url,
+			'https': proxy_url 
+		}
+		s.proxies.update(proxies)
+		print(s.proxies)
+		bot = praw.Reddit(bot_name, requestor_kwargs={'session': s})
+	else:
+		bot = praw.Reddit(bot_name)
+	return bot
 
 def save_worker_data():
 	save_workers = {}
@@ -56,9 +71,10 @@ def start_session(bots, target_users):
 			schedules = load_schedule_data(data['schedules'], workers)
 	else:
 		# init workers
-		for bot in bots:
-			w = Worker(praw.Reddit(bot), bot)
-			workers[bot] = w
+		for bot_name in bots:
+			bot = create_reddit_worker(bot_name, None)
+			w = Worker(bot, bot_name)
+			workers[bot_name] = w
 
 	start_session['targets'] = targets
 	start_session['workers'] = workers
@@ -74,17 +90,16 @@ def load_worker_data(workers_data, targets):
 		for t in w.get('targets'):
 			if targets.get(t):
 				workers_targets[t] = targets.get(t)
-		load_workers[name] = Worker(praw.Reddit(name), name, workers_interacted, workers_targets)
-	return load_workers				
+		bot = create_reddit_worker(name, None)
+		load_workers[name] = Worker(bot, name, workers_interacted, workers_targets)
+	return load_workers
 
 def load_schedule_data(schedules_data, workers):
 	load_schedules = {}
 	for name, s in schedules_data.items():
 		schedules_bots = {}
 		for bot_name in s['workers']:
-			print(bot_name)
 			if workers.get(bot_name):
-				print('found!')
 				schedules_bots[bot_name] = workers.get(bot_name)
 		load_schedules[name] = Schedule(name, s['freq'], schedules_bots)
 	return load_schedules	
