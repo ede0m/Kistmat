@@ -2,6 +2,7 @@ import praw
 import sys
 import json
 import os
+from proxy_studio import *
 from models.target import Target
 from models.worker import Worker
 from models.schedule import Schedule
@@ -12,16 +13,32 @@ from requests import Session
 def create_reddit_worker(bot_name, proxy_url):
 	if proxy_url:
 		s = Session()
-		proxies = {
-			'http': proxy_url,
-			'https': proxy_url 
-		}
+		proxies =  { 'https': proxy_url}
 		s.proxies.update(proxies)
-		print(s.proxies)
 		bot = praw.Reddit(bot_name, requestor_kwargs={'session': s})
+		print(bot._core._requestor._http.proxies.get('https'))
 	else:
 		bot = praw.Reddit(bot_name)
 	return bot
+
+def update_worker_proxy(bot_name):
+	choice = input('\n1. manual entry\n2. random assignment\n3. clear proxy\n4. exit\n\nchoose a number: ')
+	if choice == '1':
+		print('\nplease enter https proxy in this form: https://72.35.40.34:8080')
+		proxy_url = input('\nproxy url: ')
+		valid = validate_proxy_url(proxy_url)
+		if valid:
+			test = input('would you like to test your proxy? (y/n): ')
+			if test == 'y' or test == 'Y':
+				try_proxy(proxy_url)
+			finalize = input('finalize proxy update? (y/n): ')
+			if finalize == 'y' or finalize == 'Y':
+				workers[bot_name].update_instance(create_reddit_worker(bot_name, proxy_url))
+	elif choice == '2':
+		get_usable_https_proxies()
+	elif choice == '3':
+		workers[bot_name].update_instance(create_reddit_worker(bot_name, None))
+
 
 def save_worker_data():
 	save_workers = {}
@@ -29,6 +46,7 @@ def save_worker_data():
 		save_worker = {}
 		save_worker['interacted_with'] = list(w.interacted_with)
 		save_worker['targets'] = list(name for name in w.targets.keys())
+		save_worker['proxy'] = w.worker_instance._core._requestor._http.proxies.get('https')
 		save_workers[name] = save_worker
 	return save_workers
 
@@ -60,7 +78,7 @@ def start_session(bots, target_users):
 
 	# init targets
 	for target, options in target_users.items():
-		targets[target] = Target(read_reddit, target, options)
+		targets[target] = Target(target, options)
 
 	session_fn = 'session.json'
 	load_data = {}
@@ -85,12 +103,13 @@ def start_session(bots, target_users):
 def load_worker_data(workers_data, targets):
 	load_workers = {}
 	for name, w in workers_data.items():
-		workers_targets = {}
+		worker_proxy = w.get('proxy')
 		workers_interacted = set(w['interacted_with'])
+		workers_targets = {}
 		for t in w.get('targets'):
 			if targets.get(t):
 				workers_targets[t] = targets.get(t)
-		bot = create_reddit_worker(name, None)
+		bot = create_reddit_worker(name, worker_proxy)
 		load_workers[name] = Worker(bot, name, workers_interacted, workers_targets)
 	return load_workers
 
@@ -105,9 +124,14 @@ def load_schedule_data(schedules_data, workers):
 	return load_schedules	
 
 
-def print_entities(entity_list):
-	for k, v in entity_list.items():
+def print_targets(targets):
+	for k, v in targets.items():
 		details = '\t\t\t'+v.name
+		print(details)
+
+def print_workers(workers):
+	for k, v in workers.items():
+		details = '\t\t\t'+v.name+'\t'+ str(v.worker_instance._core._requestor._http.proxies.get('https'))
 		print(details)
 
 def print_schedules(schedules):
@@ -128,7 +152,7 @@ def create_schedule_prompt():
 	print('\ncreated schedule: '+s.name+'\n')
 
 def print_usage():
-	print('\n\nartificial karma 0.1\n--------------------')
+	print('\n\nartificial karma 0.2\n--------------------')
 	print('\nUSAGE:\n \nlist loaded targets: \t\t\'list targets\''+
 		'\nlist loaded bots: \t\t\'list bots\''+
 		'\nlist schedules: \t\t\'list schedules\''+
@@ -141,6 +165,7 @@ def print_usage():
 		'\n\nregister target to bot: \t\'[botName] register target [targetName]\'' +
 		'\nremove target from bot: \t\'[botName] remove target [targetName]\'' +
 		'\nlist bot\'s targets: \t\t\'[botName] list targets\''+
+		'\nupdate a bot\'s proxy: \t\t\'[botName] update proxy\''+
 		'\n\nrun all bots: \t\t\t\'run\''+
 		'\nrun a schedule: \t\t\'run [scheduleName]\''+
 		'\nrun a bot: \t\t\t\'run [botName]\''+
@@ -156,9 +181,9 @@ def run_cli():
 			
 			if cmds[0] == 'list':
 				if cmds[1] == 'targets':
-					print_entities(targets)
+					print_targets(targets)
 				elif cmds[1] == 'bots':
-					print_entities(workers)
+					print_workers(workers)
 				elif cmds[1] == 'schedules':
 					print_schedules(schedules)
 				else:
@@ -184,6 +209,10 @@ def run_cli():
 						print_entities(workers[cmds[0]].targets)
 					else:
 						print('unknown command: \''+cmds[0]+' '+cmds[1]+' '+cmds[2]+'\'')
+				
+				elif cmds[1] == 'update' and cmds[2] == 'proxy':
+					update_worker_proxy(cmds[0])
+
 				else:
 					print('unknown command: \''+cmds[1]+' '+cmds[2]+'\'')
 
@@ -285,7 +314,7 @@ except FileNotFoundError as not_found:
 	print_targets_error()
 
 # read only bot
-read_reddit = praw.Reddit('reader_bot')
+#read_reddit = praw.Reddit('reader_bot')
 
 # try load 
 session = start_session(['bot1', 'bot2'], target_users)

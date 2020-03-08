@@ -1,10 +1,10 @@
 
 class Target:
 
-	def __init__(self, reddit, name, options):
-		self.read_reddit = reddit
-		self.redditor = self.read_reddit.redditor(name)
-		self.name = self.redditor.name
+	def __init__(self, name, options):
+		#self.read_reddit = reddit
+		self.redditor = None 
+		self.name = name
 		self.vote_direction = options['vote_direction']
 		self.vote_comments = options['comments']
 		self.vote_submissions = options['submissions']
@@ -22,8 +22,8 @@ class Target:
 	def link_karma(self):
 		return self.redditor.link_karma
 
-	def update(self):
-		# does this work??
-		self.redditor = self.read_reddit.redditor(self.name)
+	# have a worker take control of this target
+	def update(self, worker):
+		self.redditor = worker.redditor(self.name)
 
 

@@ -14,15 +14,20 @@ class Worker:
 			details += self.__vote_flood(t)
 		return details
 
+	def update_instance(self, reddit):
+		self.worker_instance = reddit
+
 	def __vote_flood(self, target):
 
 		try:
+			# this worker takes control of this target
+			target.update(self.worker_instance) # TODO: doesn't seem to update the karma values on redditor
+
 			if target.vote_comments:
 				n_c_voted = self.__try_vote_post_set(target.comments(), target.vote_direction)
 			if target.vote_submissions:
 				n_p_voted = self.__try_vote_post_set(target.submissions(), target.vote_direction)
 			
-			target.update() # TODO: doesn't seem to update the karma values on redditor
 			dir_str = 'UP' if target.vote_direction == 1 else 'DOWN'
 			dt = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
 			
@@ -46,7 +51,7 @@ class Worker:
 			expired = (now-created_date) > timedelta(180)
 			if p.id not in self.interacted_with and not expired:
 				self.__vote(p, v_direction)
-			n_voted += 1
+				n_voted += 1
 
 		return n_voted
 
