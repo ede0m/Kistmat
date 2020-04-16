@@ -47,6 +47,7 @@ def save_worker_data():
 		save_worker['interacted_with'] = list(w.interacted_with)
 		save_worker['targets'] = list(name for name in w.targets.keys())
 		save_worker['proxy'] = w.worker_instance._core._requestor._http.proxies.get('https')
+		save_worker['random_vote_sleep_max_sec'] = w.random_vote_sleep_max_sec
 		save_workers[name] = save_worker
 	return save_workers
 
@@ -87,9 +88,10 @@ def start_session(bots, target_users):
 			data = json.loads(handle.read())
 			workers = load_worker_data(data['workers'], targets)
 			schedules = load_schedule_data(data['schedules'], workers)
-	else:
-		# init workers
-		for bot_name in bots:
+
+	# init workers
+	for bot_name in bots:
+		if workers.get(bot_name) == None:
 			bot = create_reddit_worker(bot_name, None)
 			w = Worker(bot, bot_name)
 			workers[bot_name] = w
@@ -111,6 +113,10 @@ def load_worker_data(workers_data, targets):
 				workers_targets[t] = targets.get(t)
 		bot = create_reddit_worker(name, worker_proxy)
 		load_workers[name] = Worker(bot, name, workers_interacted, workers_targets)
+
+		if w.get('random_vote_sleep_max_sec'):
+			load_workers[name].set_vote_sleep_max_sec(w['random_vote_sleep_max_sec'])
+
 	return load_workers
 
 def load_schedule_data(schedules_data, workers):
@@ -131,12 +137,19 @@ def print_targets(targets):
 
 def print_workers(workers):
 	for k, v in workers.items():
-		details = '\t\t\t'+v.name+'\t'+ str(v.worker_instance._core._requestor._http.proxies.get('https'))
+		proxy = v.worker_instance._core._requestor._http.proxies.get('https')
+		if proxy == None:
+			proxy = '\t\t\t'
+
+		details = '\t\t\t'+v.name+'\t'+ str(proxy) + '\trand_vote_sleep: '+str(v.random_vote_sleep_max_sec)
 		print(details)
 
 def print_schedules(schedules):
 	for name, s in schedules.items():
 		print('\t\t\t'+name+'\t'+'freq: '+str(s.get_freq())+'m\trunning: '+str(s.running))
+
+def print_schedule_log(schedule):
+	print(schedules.get(schedule).log)
 
 def create_schedule_prompt():
 	n_schedules = len(schedules.keys())
@@ -162,10 +175,12 @@ def print_usage():
 		'\nremove bot from schedule: \t\'[scheduleName] remove bot [botName]\''+
 		'\nupdate schedule freq: \t\t\'[scheduleName] update freq [minutes]\''+
 		'\nlist schedule\'s bots: \t\t\'[scheduleName] list bots\''+
+		'\nprint schedule\'s log: \t\t\'[scheduleName] print log\''+
 		'\n\nregister target to bot: \t\'[botName] register target [targetName]\'' +
 		'\nremove target from bot: \t\'[botName] remove target [targetName]\'' +
 		'\nlist bot\'s targets: \t\t\'[botName] list targets\''+
 		'\nupdate a bot\'s proxy: \t\t\'[botName] update proxy\''+
+		'\nbot\'s vote sleep interval max: \t\'[botName] set sleep [sec]\''+
 		'\n\nrun all bots: \t\t\t\'run\''+
 		'\nrun a schedule: \t\t\'run [scheduleName]\''+
 		'\nrun a bot: \t\t\t\'run [botName]\''+
@@ -203,14 +218,17 @@ def run_cli():
 						del workers[bot_name].targets[cmds[3]]
 					else:
 						print('target: ' + cmds[3] + ' not found')
-						
-				elif cmds[1] == 'list':
+					
+				elif len(cmds) > 3 and cmds[1] == 'set' and cmds[2] == 'sleep' and cmds[3].isdigit():
+					workers[cmds[0]].set_vote_sleep_max_sec(cmds[3])
+
+				elif len(cmds) > 2 and cmds[1] == 'list':
 					if cmds[2] == 'targets':
-						print_entities(workers[cmds[0]].targets)
+						print_targets(workers[cmds[0]].targets)
 					else:
 						print('unknown command: \''+cmds[0]+' '+cmds[1]+' '+cmds[2]+'\'')
 				
-				elif cmds[1] == 'update' and cmds[2] == 'proxy':
+				elif len(cmds) > 2 and cmds[1] == 'update' and cmds[2] == 'proxy':
 					update_worker_proxy(cmds[0])
 
 				else:
@@ -253,10 +271,14 @@ def run_cli():
 						print(freq + ' is not an integer')
 				
 				elif cmds[1] == 'list':
-					if cmds[2] == 'bots':
+					if len(cmds) > 2 and cmds[2] == 'bots':
 						for b in schedules[cmds[0]].workers.keys(): print('\t\t\t'+b)
 					else:
-						print('unknown command: \''+cmds[0]+' '+cmds[1]+' '+cmds[2]+'\'')
+						print('unknown command: \''+cmds[0]+' '+cmds[1]+'\'')
+
+				elif cmds[1] == 'print':
+					print_schedule_log(cmds[0])
+
 				else:
 					print('unknown command: \''+cmds[1]+' '+cmds[2]+'\'')
 
@@ -317,7 +339,7 @@ except FileNotFoundError as not_found:
 #read_reddit = praw.Reddit('reader_bot')
 
 # try load 
-session = start_session(['bot1', 'bot2'], target_users)
+session = start_session(['bot1', 'bot2', 'bot3', 'bot4', 'bot5', 'bot6'], target_users)
 schedules = session['schedules']
 workers = session['workers']
 targets = session['targets']

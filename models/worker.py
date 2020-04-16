@@ -1,4 +1,6 @@
 from datetime import datetime, timedelta
+from time import sleep
+from random import randrange
 
 class Worker:
 
@@ -7,6 +9,7 @@ class Worker:
 		self.interacted_with = interacted_with
 		self.targets = targets
 		self.name = name
+		self.random_vote_sleep_max_sec = 0
 
 	def run_worker(self):
 		details = ''
@@ -17,6 +20,9 @@ class Worker:
 	def update_instance(self, reddit):
 		self.worker_instance = reddit
 
+	def set_vote_sleep_max_sec(self, sec):
+		self.random_vote_sleep_max_sec = float(sec)
+
 	def __vote_flood(self, target):
 
 		try:
@@ -24,9 +30,9 @@ class Worker:
 			target.update(self.worker_instance) # TODO: doesn't seem to update the karma values on redditor
 
 			if target.vote_comments:
-				n_c_voted = self.__try_vote_post_set(target.comments(), target.vote_direction)
+				n_c_voted = self.__try_vote_set(target.comments(), target.vote_direction)
 			if target.vote_submissions:
-				n_p_voted = self.__try_vote_post_set(target.submissions(), target.vote_direction)
+				n_p_voted = self.__try_vote_set(target.submissions(), target.vote_direction)
 			
 			dir_str = 'UP' if target.vote_direction == 1 else 'DOWN'
 			dt = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
@@ -40,7 +46,7 @@ class Worker:
 			error = '\nsomething went wrong - ' + str(e) + "\n"
 			return error
 	
-	def __try_vote_post_set(self, p_set, v_direction):
+	def __try_vote_set(self, p_set, v_direction):
 		
 		n_voted = 0
 		for p in p_set:
@@ -50,6 +56,10 @@ class Worker:
 			now = datetime.utcnow()
 			expired = (now-created_date) > timedelta(180)
 			if p.id not in self.interacted_with and not expired:
+				
+				if self.random_vote_sleep_max_sec > 0:
+					sleep(randrange(0, self.random_vote_sleep_max_sec))
+
 				self.__vote(p, v_direction)
 				n_voted += 1
 

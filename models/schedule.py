@@ -8,15 +8,23 @@ class Schedule:
 		self.name = name
 		self.workers = workers
 		self.running = False
+		self.log = ''
 
 	def __run_workers(self):
 		details = '\n\n- report for schedule: '+self.name+' -\n'
 		for w in self.workers.values():
-			details += w.run_worker()
+			new_details = w.run_worker()
+			details += new_details
+			self.log += new_details
 		print(details)
 
 	def __run_schedule(self):
-		self.__run_workers()
+		try:
+			self.__run_workers()
+		except Exception as e:
+			self.running = False
+			raise e
+
 		self.__timer = Timer(self.__freq, self.__run_schedule)
 		self.__timer.start()
 
