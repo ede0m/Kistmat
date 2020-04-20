@@ -2,7 +2,8 @@ import praw
 import sys
 import json
 import os
-from proxy_studio import *
+from modules.proxy_studio import *
+from modules.investigator import *
 from models.target import Target
 from models.worker import Worker
 from models.schedule import Schedule
@@ -180,11 +181,12 @@ def print_usage():
 		'\nremove target from bot: \t\'[botName] remove target [targetName]\'' +
 		'\nlist bot\'s targets: \t\t\'[botName] list targets\''+
 		'\nupdate a bot\'s proxy: \t\t\'[botName] update proxy\''+
-		'\nbot\'s vote sleep interval max: \t\'[botName] set sleep [sec]\''+
+		'\nbot\'s vote sleep offset max: \t\'[botName] set sleep [sec]\''+
 		'\n\nrun all bots: \t\t\t\'run\''+
 		'\nrun a schedule: \t\t\'run [scheduleName]\''+
 		'\nrun a bot: \t\t\t\'run [botName]\''+
 		'\nstop a schedule: \t\t\'stop [scheduleName]\''+
+		'\n\nn popular users for subreddit: \t\'inspect popular [subreddit] [n]'
 		'\n\nusage: \t\t\t\t\'help\'')
 	print('---------------------\n')
 
@@ -298,11 +300,19 @@ def run_cli():
 						for t in w.targets.values():
 							w.vote_flood(t)
 
+			elif cmds[0] == 'inspect':
+				if len(cmds) > 3 and cmds[1] == 'popular' and cmds[3].isdigit():
+					subreddit_name = cmds[2]
+					limit_n_users = cmds[3]
+					popular_subreddit_users(subreddit_name, limit_n_users)
+				else:
+					print('unknown command: \''+' '.join(cmds)+'\'')
+
 			elif cmds[0] == 'help':
 				print_usage()
 
 			elif cmds[0].strip() != '':
-				print('unknown command: \''+cmds[0]+'\'')
+				print('unknown command: \''+' '.join(cmds)+'\'')
 			
 		except KeyboardInterrupt:
 			save_session()
@@ -334,9 +344,6 @@ try:
 			print_targets_error()
 except FileNotFoundError as not_found:
 	print_targets_error()
-
-# read only bot
-#read_reddit = praw.Reddit('reader_bot')
 
 # try load 
 session = start_session(['bot1', 'bot2', 'bot3', 'bot4', 'bot5', 'bot6'], target_users)
