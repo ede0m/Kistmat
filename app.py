@@ -186,7 +186,7 @@ def print_usage():
 		'\nrun a schedule: \t\t\'run [scheduleName]\''+
 		'\nrun a bot: \t\t\t\'run [botName]\''+
 		'\nstop a schedule: \t\t\'stop [scheduleName]\''+
-		'\n\nn popular users for subreddit: \t\'inspect popular [subreddit] [n]'
+		'\nrun an investigation: \t\t\'run investigation\''+
 		'\n\nusage: \t\t\t\t\'help\'')
 	print('---------------------\n')
 
@@ -293,20 +293,15 @@ def run_cli():
 						print('\n- running '+cmds[1]+' -\n')
 						print(workers[cmds[1]].run_worker())
 					
+					elif cmds[1] == 'investigation':
+						investigator_prompt()
+					
 					else:
 						print('run target: ' + cmds[1] + ' not found')
 				else:
 					for w in workers.values():
 						for t in w.targets.values():
 							w.vote_flood(t)
-
-			elif cmds[0] == 'inspect':
-				if len(cmds) > 3 and cmds[1] == 'popular' and cmds[3].isdigit():
-					subreddit_name = cmds[2]
-					limit_n_users = cmds[3]
-					popular_subreddit_users(subreddit_name, limit_n_users)
-				else:
-					print('unknown command: \''+' '.join(cmds)+'\'')
 
 			elif cmds[0] == 'help':
 				print_usage()
