@@ -3,6 +3,7 @@ pip-selfcheck.json
 praw.ini
 session.json
 targets.json
+investigations/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

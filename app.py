@@ -40,6 +40,8 @@ def update_worker_proxy(bot_name):
 	elif choice == '3':
 		workers[bot_name].update_instance(create_reddit_worker(bot_name, None))
 
+	print('\n')
+
 
 def save_worker_data():
 	save_workers = {}
@@ -130,6 +132,10 @@ def load_schedule_data(schedules_data, workers):
 		load_schedules[name] = Schedule(name, s['freq'], schedules_bots)
 	return load_schedules	
 
+def print_investigations(investigations):
+	for k, v in investigations.items():
+		details = '\t\t\t'+v.name+'\tprogress: '+str(v.progress)+'%'
+		print(details)
 
 def print_targets(targets):
 	for k, v in targets.items():
@@ -203,6 +209,8 @@ def run_cli():
 					print_workers(workers)
 				elif cmds[1] == 'schedules':
 					print_schedules(schedules)
+				elif cmds[1] == 'investigations':
+					print_investigations(active_investigations)
 				else:
 					print('unknown command: \''+cmds[1]+'\'')
 			
@@ -294,7 +302,8 @@ def run_cli():
 						print(workers[cmds[1]].run_worker())
 					
 					elif cmds[1] == 'investigation':
-						investigator_prompt()
+						investigation = TargetInvestigation(read_reddit)
+						active_investigations[investigation.name] = investigation
 					
 					else:
 						print('run target: ' + cmds[1] + ' not found')
@@ -340,11 +349,15 @@ try:
 except FileNotFoundError as not_found:
 	print_targets_error()
 
+# read only bot
+read_reddit = praw.Reddit('reader_bot')
+
 # try load 
-session = start_session(['bot1', 'bot2', 'bot3', 'bot4', 'bot5', 'bot6'], target_users)
+session = start_session(['bot1', 'bot2', 'bot3', 'bot4', 'bot5', 'bot6', 'bot7', 'bot8'], target_users)
 schedules = session['schedules']
 workers = session['workers']
 targets = session['targets']
+active_investigations = {}
 
 # run app
 print_usage()

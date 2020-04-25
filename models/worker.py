@@ -25,26 +25,38 @@ class Worker:
 
 	def __vote_flood(self, target):
 
+		details = ''
+		comments_success = True
+		submissions_success = True
+		# this worker takes control of this target
+		target.update(self.worker_instance) # TODO: doesn't seem to update the karma values on redditor
 		try:
-			# this worker takes control of this target
-			target.update(self.worker_instance) # TODO: doesn't seem to update the karma values on redditor
 
 			if target.vote_comments:
 				n_c_voted = self.__try_vote_set(target.comments(), target.vote_direction)
+		except Exception as e:
+			error = '\nsomething went wrong with comments for '+self.name+' - ' + str(e)
+			comments_success = False
+			details += error
+		
+		try:
 			if target.vote_submissions:
 				n_p_voted = self.__try_vote_set(target.submissions(), target.vote_direction)
-			
-			dir_str = 'UP' if target.vote_direction == 1 else 'DOWN'
-			dt = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
-			
-			details = ''
-			details += '\n'+dt+' - '+self.name+' voted ' +dir_str+' on '+str(n_c_voted)+' comments by ' + target.name +' ['+str(target.comment_karma())+']'
-			details += '\n'+dt+' - '+self.name+' voted ' +dir_str+' on '+str(n_p_voted)+' submissions by ' + target.name +' ['+str(target.link_karma())+']'
-			return details + '\n'
-		
 		except Exception as e:
-			error = '\nsomething went wrong - ' + str(e) + "\n"
-			return error
+			error = '\nsomething went wrong with submissions for '+self.name+' - ' + str(e)
+			submissions_success = False
+			details += error
+
+		
+		dir_str = 'UP' if target.vote_direction == 1 else 'DOWN'
+		dt = datetime.now().strftime("%d/%m/%Y %H:%M:%S")
+		
+		if comments_success:
+			details += '\n'+dt+' - '+self.name+' voted ' +dir_str+' on '+str(n_c_voted)+' comments by ' + target.name +' ['+str(target.comment_karma())+']'
+		if submissions_success:
+			details += '\n'+dt+' - '+self.name+' voted ' +dir_str+' on '+str(n_p_voted)+' submissions by ' + target.name +' ['+str(target.link_karma())+']'
+		
+		return details + '\n'
 	
 	def __try_vote_set(self, p_set, v_direction):
 		
