@@ -1,4 +1,4 @@
-# Kismat 0.1
+# Kismat 0.3
 
 Kismat gives you that extra push you need on reddit.
 
@@ -19,6 +19,8 @@ Provide a `targets.json` file in the run directory:
 }
 ```
 Register targets to bots and register bots to schedules. 
+Obscure bot requests with random intervals and proxy support.
+Run investigation functions to gather targets.
 
 Your bot-target, schedule-bot configurations and bot-post interactions are saved on program close. 
 This session will load by default when restarting the app. You can also modify the session before running by modifying the `session.json` file in the run directory. 
